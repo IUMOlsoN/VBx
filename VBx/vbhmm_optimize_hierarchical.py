@@ -46,12 +46,59 @@ from diarization_lib import read_xvector_timing_dict, l2_norm, cos_similarity, t
     merge_adjacent_labels, mkdir_p
 from kaldi_utils import read_plda
 from VB_diarization import VB_diarization
-
+import time
 
 def write_output(fp, out_labels, starts, ends):
     for label, seg_start, seg_end in zip(out_labels, starts, ends):
         fp.write(f'SPEAKER {file_name} 1 {seg_start:03f} {seg_end - seg_start:03f} '
                  f'<NA> <NA> {label + 1} <NA> <NA>{os.linesep}')
+
+def get_group_clusters(x, xvector_group, threshold):
+    """
+    Given a full array of x-vectors, a smaller group of x-vectors and a threshold, returns an array of clustered x-vectors defined by a new centroid, an array of x-vector cluster labels, and the number of clusters made in the group.
+    """
+    # similarity
+    scr_mx_group = cos_similarity(xvector_group)
+    # adjust threshold
+    thr_group, junk_group = twoGMMcalib_lin(scr_mx_group.ravel())
+    #cluster
+    labels_group = AHC(scr_mx_group, thr_group + threshold)
+    # get clusters
+    group_cluster_number = np.max(labels_group) + 1
+    # get new cluster centroid
+    group_processed_xvectors = np.empty((group_cluster_number,x.shape[1]))
+    for label in range(group_cluster_number):
+        cluster_centroid = np.mean(x[np.argwhere(labels_group==label).ravel(),:],axis=0)
+        group_processed_xvectors[label] = cluster_centroid
+    return group_processed_xvectors, labels_group, group_cluster_number
+
+def get_all_group_clusters(x, group_size, threshold):
+    """
+    Given an array of x-vectors, a size to group the x-vectors by (int), and a threshold value, cluster the x-vectors in groups.
+    Returns the an array of labels for all x-vectors and an array of clustered x-vectors
+    """
+    xvectors, xvector_length = x.shape
+    xvector_group_size = round(group_size*60*4) # minutes to 0.25 second
+    if xvector_group_size >= xvectors:
+        raise ValueError('group size too large')
+    all_group_cluster_labels = np.empty((xvectors,),dtype=np.int8)
+    all_xvectors_group_clustered = np.empty_like(x)
+    index_offset = 0
+    for group_start in range(0,xvectors,xvector_group_size):
+        # slice x-vector group
+        if group_start + xvector_group_size > xvectors:
+            group_end = xvectors
+        else:
+            group_end = group_start + xvector_group_size
+        group_xvectors, group_labels, group_cluster_total = get_group_clusters(x, x[group_start:group_end,:], args.threshold)
+        # update labels
+        all_group_cluster_labels[group_start:group_start+group_labels.size] = group_labels + index_offset
+        # update the array of clustered x-vectors
+        all_xvectors_group_clustered[index_offset:index_offset+np.max(group_labels)+1,:] = group_xvectors
+        index_offset += group_cluster_total
+    # get the clustered x-vectors
+    all_xvectors_group_clustered = all_xvectors_group_clustered[0:index_offset,:]
+    return all_group_cluster_labels, all_xvectors_group_clustered
 
 
 if __name__ == '__main__':
