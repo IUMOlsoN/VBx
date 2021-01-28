@@ -171,11 +171,30 @@ if __name__ == '__main__':
             if args.init.startswith('AHC'):
                 # Kaldi-like AHC of x-vectors (scr_mx is matrix of pairwise
                 # similarities between all x-vectors)
-                scr_mx = cos_similarity(x)
-                # Figure out utterance specific args.threshold for AHC.
-                thr, junk = twoGMMcalib_lin(scr_mx.ravel())
-                # output "labels" is an integer vector of speaker (cluster) ids
-                labels1st = AHC(scr_mx, thr + args.threshold)
+                if args.cluster_optimization == 'hierarchical':
+                    start = time.time()
+                    all_group_cluster_labels, all_xvectors_group_clustered = get_all_group_clusters(x, args.group_size, args.threshold)
+                    # cluster the processed x-vectors
+                    scr_mx_group_clustered = cos_similarity(all_xvectors_group_clustered)
+                    thr_group_clustered, junk_group_clustered = twoGMMcalib_lin(scr_mx_group_clustered.ravel())
+                    labels_group = AHC(scr_mx_group_clustered, thr_group_clustered + args.threshold)
+                    # get all cluster labels
+                    cluster_labels = np.unique(all_group_cluster_labels)
+                    # set original x-vector cluster labels to the final label
+                    for label in cluster_labels:
+                        all_group_cluster_labels[all_group_cluster_labels==label] = labels_group[label]
+                    labels1st = all_group_cluster_labels
+                    print('elapsed',time.time()-start)
+#                    print('final',np.unique(all_group_cluster_labels))
+                else:
+                    start = time.time()
+                    scr_mx = cos_similarity(x)
+                    # Figure out utterance specific args.threshold for AHC.
+                    thr, junk = twoGMMcalib_lin(scr_mx.ravel())
+                    # output "labels" is an integer vector of speaker (cluster) ids
+                    labels1st = AHC(scr_mx, thr + args.threshold)
+                    elapsed = time.time()-start
+                    print('elapsed',elapsed)
             if args.init.endswith('VB'):
                 # Smooth the hard labels obtained from AHC to soft assignments
                 # of x-vectors to speakers
