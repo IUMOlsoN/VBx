@@ -133,6 +133,10 @@ if __name__ == '__main__':
                              ' smoothing. Not so important, high value (e.g. 10) is OK  => keeping hard assigment')
     parser.add_argument('--output-2nd', required=False, type=bool, default=False,
                         help='Output also second most likely speaker of VB-HMM')
+    parser.add_argument('--cluster-optimization', required=False, choices=['hierarchical'], type=str,
+                        help='hierarchical to cluster small chunks before AHC step')
+    parser.add_argument('--group-size', required=False, default=3.0, type=float,
+                        help='specify how many minutes long x-vectors should be grouped during hierarchical optimization')
 
     args = parser.parse_args()
     assert 0 <= args.loopP <= 1, f'Expecting loopP between 0 and 1, got {args.loopP} instead.'
