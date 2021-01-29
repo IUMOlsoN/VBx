@@ -72,18 +72,18 @@ def get_group_clusters(x, xvector_group, threshold):
         group_processed_xvectors[label] = cluster_centroid
     return group_processed_xvectors, labels_group, group_cluster_number
 
-def get_all_group_clusters(x, group_size_xvectors, threshold):
+def get_all_group_clusters(x, group_size_xvectors,total_xvectors, threshold):
     """
     Given an array of x-vectors, a size to group the x-vectors by (int), and a threshold value, cluster the x-vectors in groups.
     Returns the an array of labels for all x-vectors and an array of clustered x-vectors
     """
-    all_group_cluster_labels = np.empty((xvectors,),dtype=np.int8)
+    all_group_cluster_labels = np.empty((total_xvectors,),dtype=np.int8)
     all_xvectors_group_clustered = np.empty_like(x)
     index_offset = 0
-    for group_start in range(0,xvectors,group_size_xvectors):
+    for group_start in range(0,total_xvectors,group_size_xvectors):
         # slice x-vector group
-        if group_start + xvector_group_size > xvectors:
-            group_end = xvectors
+        if group_start + group_size_xvectors > xvectors:
+            group_end = total_xvectors
         else:
             group_end = group_start + group_size_xvectors
         group_xvectors, group_labels, group_cluster_total = get_group_clusters(x, x[group_start:group_end,:], threshold)
@@ -171,7 +171,7 @@ if __name__ == '__main__':
                 xvectors, xvector_length = x.shape
                 xvector_group_size = round(args.group_size*60*4) # minutes to 0.25 second
                 if args.cluster_optimization == 'hierarchical' and xvector_group_size < xvectors:
-                    all_group_cluster_labels, all_xvectors_group_clustered = get_all_group_clusters(x, xvector_group_size, args.threshold)
+                    all_group_cluster_labels, all_xvectors_group_clustered = get_all_group_clusters(x, xvector_group_size, xvectors, args.threshold)
                     # cluster the processed x-vectors
                     scr_mx_group_clustered = cos_similarity(all_xvectors_group_clustered)
                     thr_group_clustered, junk_group_clustered = twoGMMcalib_lin(scr_mx_group_clustered.ravel())
