@@ -72,29 +72,25 @@ def get_group_clusters(x, xvector_group, threshold):
         group_processed_xvectors[label] = cluster_centroid
     return group_processed_xvectors, labels_group, group_cluster_number
 
-def get_all_group_clusters(x, group_size, threshold):
+def get_all_group_clusters(x, group_size_xvectors, threshold):
     """
     Given an array of x-vectors, a size to group the x-vectors by (int), and a threshold value, cluster the x-vectors in groups.
     Returns the an array of labels for all x-vectors and an array of clustered x-vectors
     """
-    xvectors, xvector_length = x.shape
-    xvector_group_size = round(group_size*60*4) # minutes to 0.25 second
-    if xvector_group_size >= xvectors:
-        raise ValueError('group size too large')
     all_group_cluster_labels = np.empty((xvectors,),dtype=np.int8)
     all_xvectors_group_clustered = np.empty_like(x)
     index_offset = 0
-    for group_start in range(0,xvectors,xvector_group_size):
+    for group_start in range(0,xvectors,group_size_xvectors):
         # slice x-vector group
         if group_start + xvector_group_size > xvectors:
             group_end = xvectors
         else:
-            group_end = group_start + xvector_group_size
-        group_xvectors, group_labels, group_cluster_total = get_group_clusters(x, x[group_start:group_end,:], args.threshold)
+            group_end = group_start + group_size_xvectors
+        group_xvectors, group_labels, group_cluster_total = get_group_clusters(x, x[group_start:group_end,:], threshold)
         # update labels
         all_group_cluster_labels[group_start:group_start+group_labels.size] = group_labels + index_offset
         # update the array of clustered x-vectors
-        all_xvectors_group_clustered[index_offset:index_offset+np.max(group_labels)+1,:] = group_xvectors
+        all_xvectors_group_clustered[index_offset:index_offset+group_cluster_total,:] = group_xvectors
         index_offset += group_cluster_total
     # get the clustered x-vectors
     all_xvectors_group_clustered = all_xvectors_group_clustered[0:index_offset,:]
@@ -171,9 +167,11 @@ if __name__ == '__main__':
             if args.init.startswith('AHC'):
                 # Kaldi-like AHC of x-vectors (scr_mx is matrix of pairwise
                 # similarities between all x-vectors)
-                if args.cluster_optimization == 'hierarchical':
-                    start = time.time()
-                    all_group_cluster_labels, all_xvectors_group_clustered = get_all_group_clusters(x, args.group_size, args.threshold)
+                start = time.time()
+                xvectors, xvector_length = x.shape
+                xvector_group_size = round(args.group_size*60*4) # minutes to 0.25 second
+                if args.cluster_optimization == 'hierarchical' and xvector_group_size < xvectors:
+                    all_group_cluster_labels, all_xvectors_group_clustered = get_all_group_clusters(x, xvector_group_size, args.threshold)
                     # cluster the processed x-vectors
                     scr_mx_group_clustered = cos_similarity(all_xvectors_group_clustered)
                     thr_group_clustered, junk_group_clustered = twoGMMcalib_lin(scr_mx_group_clustered.ravel())
@@ -184,8 +182,7 @@ if __name__ == '__main__':
                     for label in cluster_labels:
                         all_group_cluster_labels[all_group_cluster_labels==label] = labels_group[label]
                     labels1st = all_group_cluster_labels
-                    print('elapsed',time.time()-start)
-#                    print('final',np.unique(all_group_cluster_labels))
+                    elapsed = time.time()-start
                 else:
                     start = time.time()
                     scr_mx = cos_similarity(x)
@@ -194,7 +191,7 @@ if __name__ == '__main__':
                     # output "labels" is an integer vector of speaker (cluster) ids
                     labels1st = AHC(scr_mx, thr + args.threshold)
                     elapsed = time.time()-start
-                    print('elapsed',elapsed)
+                print('elapsed',elapsed)
             if args.init.endswith('VB'):
                 # Smooth the hard labels obtained from AHC to soft assignments
                 # of x-vectors to speakers
