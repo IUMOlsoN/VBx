@@ -56,7 +56,10 @@ def write_output(fp, out_labels, starts, ends):
 
 def get_group_clusters(xvector_group, threshold):
     """
-    Given a smaller group of x-vectors and a threshold, returns an array of clustered x-vectors defined by a new centroid, an array of x-vector cluster labels, and the number of clusters made in the group.
+    Given a smaller group of x-vectors and a threshold
+
+    Returns an array of clustered x-vectors defined by a new centroid, an array of x-vector cluster labels,
+    and the number of clusters made in the group.
     """
     # similarity
     scr_mx_group = cos_similarity(xvector_group)
@@ -67,19 +70,19 @@ def get_group_clusters(xvector_group, threshold):
     # get clusters
     group_cluster_number = np.max(labels_group) + 1
     # get new cluster centroid
-    group_processed_xvectors= np.full((group_cluster_number,xvector_group.shape[1]), np.nan)
+    group_processed_xvectors= np.empty((group_cluster_number,xvector_group.shape[1]))
     for label in range(group_cluster_number):
-        cluster_centroid = np.mean(xvector_group[labels_group==label], axis=0)
+        cluster_centroid = np.mean(xvector_group[labels_group==label,:], axis=0)
         group_processed_xvectors[label] = cluster_centroid
     return group_processed_xvectors, labels_group, group_cluster_number
 
 def get_all_group_clusters(x, group_size_xvectors,total_xvectors, threshold):
     """
-    Given an array of x-vectors, a size to group the x-vectors by (int), the total number of x-vectors,  and a threshold value, cluster the x-vectors in groups.
+    Given an array of x-vectors, a size to group the x-vectors by (int), the total number of x-vectors, and a threshold value, cluster the x-vectors in groups.
 
-    Returns the an array of labels for all x-vectors and an array of clustered x-vectors
+    Returns an array of labels for all x-vectors and an array of clustered x-vectors
     """
-    # initalize labels and x-vectors  TODO consider taking out function
+    # initalize labels and x-vectors  TODO consider taking outside function
     all_group_cluster_labels = np.empty((total_xvectors,),dtype=np.int8)
     all_xvectors_group_clustered = np.empty_like(x)
     index_offset = 0
@@ -88,7 +91,6 @@ def get_all_group_clusters(x, group_size_xvectors,total_xvectors, threshold):
         # slice x-vector group
         if group_start + group_size_xvectors > xvectors:
             group_end = total_xvectors
-            
         else:
             group_end = group_start + group_size_xvectors
         group_xvectors, group_labels, group_cluster_total = get_group_clusters(x[group_start:group_end,:], threshold)
