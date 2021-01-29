@@ -53,38 +53,45 @@ def write_output(fp, out_labels, starts, ends):
         fp.write(f'SPEAKER {file_name} 1 {seg_start:03f} {seg_end - seg_start:03f} '
                  f'<NA> <NA> {label + 1} <NA> <NA>{os.linesep}')
 
-def get_group_clusters(x, xvector_group, threshold, threshold_adjustment):
+
+def get_group_clusters(xvector_group, threshold, thr_adjust):
     """
-    Given a full array of x-vectors, a smaller group of x-vectors and a threshold, returns an array of clustered x-vectors defined by a new centroid, an array of x-vector cluster labels, and the number of clusters made in the group.
+    Given a smaller group of x-vectors and a threshold
+
+    Returns an array of clustered x-vectors defined by a new centroid, an array of x-vector cluster labels,
+    and the number of clusters made in the group.
     """
     # similarity
     scr_mx_group = cos_similarity(xvector_group)
     #cluster
-    labels_group = AHC(scr_mx_group, threshold_adjustment + threshold)
+    labels_group = AHC(scr_mx_group, thr_adjust + threshold)
     # get clusters
     group_cluster_number = np.max(labels_group) + 1
     # get new cluster centroid
-    group_processed_xvectors = np.empty((group_cluster_number,x.shape[1]))
+    group_processed_xvectors= np.empty((group_cluster_number,xvector_group.shape[1]))
     for label in range(group_cluster_number):
-        cluster_centroid = np.mean(x[np.argwhere(labels_group==label).ravel(),:],axis=0)
+        cluster_centroid = np.mean(xvector_group[labels_group==label,:], axis=0)
         group_processed_xvectors[label] = cluster_centroid
     return group_processed_xvectors, labels_group, group_cluster_number
 
-def get_all_group_clusters(x, group_size_xvectors,total_xvectors, threshold, threshold_adjustment):
+def get_all_group_clusters(x, group_size_xvectors,total_xvectors, threshold, thr_adjust):
     """
-    Given an array of x-vectors, a size to group the x-vectors by (int), and a threshold value, cluster the x-vectors in groups.
-    Returns the an array of labels for all x-vectors and an array of clustered x-vectors
+    Given an array of x-vectors, a size to group the x-vectors by (int), the total number of x-vectors, and a threshold value, cluster the x-vectors in groups.
+
+    Returns an array of labels for all x-vectors and an array of clustered x-vectors
     """
+    # initalize labels and x-vectors  TODO consider taking outside function
     all_group_cluster_labels = np.empty((total_xvectors,),dtype=np.int8)
     all_xvectors_group_clustered = np.empty_like(x)
     index_offset = 0
+    # clustser all x-vectors in groups
     for group_start in range(0,total_xvectors,group_size_xvectors):
         # slice x-vector group
         if group_start + group_size_xvectors > xvectors:
             group_end = total_xvectors
         else:
             group_end = group_start + group_size_xvectors
-        group_xvectors, group_labels, group_cluster_total = get_group_clusters(x, x[group_start:group_end,:], threshold, threshold_adjustment)
+        group_xvectors, group_labels, group_cluster_total = get_group_clusters(x[group_start:group_end,:], threshold, thr_adjust)
         # update labels
         all_group_cluster_labels[group_start:group_start+group_labels.size] = group_labels + index_offset
         # update the array of clustered x-vectors
@@ -93,6 +100,7 @@ def get_all_group_clusters(x, group_size_xvectors,total_xvectors, threshold, thr
     # get the clustered x-vectors
     all_xvectors_group_clustered = all_xvectors_group_clustered[0:index_offset,:]
     return all_group_cluster_labels, all_xvectors_group_clustered
+
 
 
 if __name__ == '__main__':
@@ -166,11 +174,13 @@ if __name__ == '__main__':
                 # Kaldi-like AHC of x-vectors (scr_mx is matrix of pairwise
                 # similarities between all x-vectors)
                 start = time.time()
-                scr_mx = cos_similarity(x)
-                # Figure out utterance specific args.threshold for AHC.
-                thr, junk = twoGMMcalib_lin(scr_mx.ravel())
                 xvectors, xvector_length = x.shape
                 xvector_group_size = round(args.group_size*60*4) # minutes to 0.25 second
+
+                scr_mx = cos_similarity(x)
+		# Figure out utterance specific args.threshold for AHC.
+                thr, junk = twoGMMcalib_lin(scr_mx.ravel())
+                # perform hierarchical clustering optimization
                 if args.cluster_optimization == 'hierarchical' and xvector_group_size < xvectors:
                     all_group_cluster_labels, all_xvectors_group_clustered = get_all_group_clusters(x, xvector_group_size, xvectors, args.threshold, thr)
                     # cluster the processed x-vectors
@@ -191,7 +201,7 @@ if __name__ == '__main__':
                     # output "labels" is an integer vector of speaker (cluster) ids
                     labels1st = AHC(scr_mx, thr + args.threshold)
                     elapsed = time.time()-start
-                print('elapsed',elapsed)
+                print('elapsed',elapsed,'total_xvectors',xvectors)
             if args.init.endswith('VB'):
                 # Smooth the hard labels obtained from AHC to soft assignments
                 # of x-vectors to speakers
