@@ -56,7 +56,7 @@ def write_output(fp, out_labels, starts, ends):
 
 def get_group_clusters(xvector_group, threshold):
     """
-    Given a smaller group of x-vectors and a threshold
+    Given a smaller group of x-vectors (of size group_size) and a threshold
 
     Returns an array of clustered x-vectors defined by a new centroid, an array of x-vector cluster labels,
     and the number of clusters made in the group.
@@ -82,7 +82,7 @@ def get_all_group_clusters(x, group_size_xvectors,total_xvectors, threshold):
 
     Returns an array of labels for all x-vectors and an array of clustered x-vectors
     """
-    # initalize labels and x-vectors  TODO consider taking outside function
+    # initalize labels and x-vectors
     all_group_cluster_labels = np.empty((total_xvectors,),dtype=np.int8)
     all_xvectors_group_clustered = np.empty_like(x)
     index_offset = 0
