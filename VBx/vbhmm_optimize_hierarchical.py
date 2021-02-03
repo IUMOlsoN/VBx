@@ -76,7 +76,7 @@ def get_group_clusters(xvector_group, threshold):
         group_processed_xvectors[label] = cluster_centroid
     return group_processed_xvectors, labels_group, group_cluster_number
 
-def get_all_group_clusters(x, group_size_xvectors,total_xvectors, threshold):
+def get_all_group_clusters(x, group_size_xvectors, total_xvectors, threshold):
     """
     Given an array of x-vectors, a size to group the x-vectors by (int), the total number of x-vectors, and a threshold value, cluster the x-vectors in groups.
 
@@ -89,7 +89,7 @@ def get_all_group_clusters(x, group_size_xvectors,total_xvectors, threshold):
     # clustser all x-vectors in groups
     for group_start in range(0,total_xvectors,group_size_xvectors):
         # slice x-vector group
-        if group_start + group_size_xvectors > xvectors:
+        if group_start + group_size_xvectors > total_xvectors:
             group_end = total_xvectors
         else:
             group_end = group_start + group_size_xvectors
