@@ -76,18 +76,18 @@ def get_group_clusters(xvector_group, threshold, thr_adjust):
 
 def get_all_group_clusters(x, group_size_xvectors,total_xvectors, threshold, thr_adjust):
     """
-    Given an array of x-vectors, a size to group the x-vectors by (int), the total number of x-vectors, and a threshold value, cluster the x-vectors in groups.
+    Given an array of x-vectors, a size to group the x-vectors by (int), the total number of x-vectors, a threshold value, and a threshold calibrated using 2 GMM on the set of all x-vectors, cluster the x-vectors in groups.
 
     Returns an array of labels for all x-vectors and an array of clustered x-vectors
     """
-    # initalize labels and x-vectors  TODO consider taking outside function
+    # initalize labels and x-vectors
     all_group_cluster_labels = np.empty((total_xvectors,),dtype=np.int8)
     all_xvectors_group_clustered = np.empty_like(x)
     index_offset = 0
     # clustser all x-vectors in groups
     for group_start in range(0,total_xvectors,group_size_xvectors):
         # slice x-vector group
-        if group_start + group_size_xvectors > xvectors:
+        if group_start + group_size_xvectors > total_xvectors:
             group_end = total_xvectors
         else:
             group_end = group_start + group_size_xvectors
