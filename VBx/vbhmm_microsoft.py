@@ -53,7 +53,6 @@ def write_output(fp, out_labels, starts, ends):
         fp.write(f'SPEAKER {file_name} 1 {seg_start:03f} {seg_end - seg_start:03f} '
                  f'<NA> <NA> {label + 1} <NA> <NA>{os.linesep}')
 
-
 #TODO: import these functions
 def get_full_labels(pre_clustered_labels, final_labels):
     """"
@@ -65,7 +64,6 @@ def get_full_labels(pre_clustered_labels, final_labels):
     full_labels = np.copy(pre_clustered_labels)
     for label in cluster_labels:
         full_labels[full_labels==label] = final_labels[label]
-
     return full_labels
 
 def get_new_xvectors(all_xvectors, all_labels):
@@ -79,6 +77,7 @@ def get_new_xvectors(all_xvectors, all_labels):
     return new_xvectors
 
 
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--init', required=True, type=str, choices=['AHC', 'AHC+VB'],
                         help='AHC for using only AHC or AHC+VB for VB-HMM after AHC initilization', )
@@ -179,13 +178,13 @@ def get_new_xvectors(all_xvectors, all_labels):
 
                     labels = AHC(scr_mx_neighbor, thr + args.threshold)
                     labels1st = get_full_labels(labels_neighbor, labels)
-                    elapsed = start - time.time()
+                    elapsed = time.time() - start
     
                 # output "labels" is an integer vector of speaker (cluster) ids
                 else:
                     thr, junk = twoGMMcalib_lin(scr_mx.ravel())
                     labels1st = AHC(scr_mx, thr + args.threshold)
-                    elapsed = start - time.time()
+                    elapsed = time.time() - start
             print('time', elapsed, 'xvectors', xvectors)
             if args.init.endswith('VB'):
                 # Smooth the hard labels obtained from AHC to soft assignments
