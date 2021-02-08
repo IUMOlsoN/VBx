@@ -53,10 +53,12 @@ def write_output(fp, out_labels, starts, ends):
         fp.write(f'SPEAKER {file_name} 1 {seg_start:03f} {seg_end - seg_start:03f} '
                  f'<NA> <NA> {label + 1} <NA> <NA>{os.linesep}')
 
+
+#TODO: import these functions
 def get_full_labels(pre_clustered_labels, final_labels):
     """"
     Given a 1D array of pre-clustered labels, translates the labels to the whole set of xvectors
-    
+
     Returns, a 1D array of labels for all x-vectors
     """
     cluster_labels = np.unique(pre_clustered_labels)
@@ -66,8 +68,17 @@ def get_full_labels(pre_clustered_labels, final_labels):
 
     return full_labels
 
+def get_new_xvectors(all_xvectors, all_labels):
+    """
+    Get x-vectors defined by a new centroid
+    """
+    row, col = all_xvectors.shape
+    new_xvectors = np.empty((np.max(all_labels)+1, col))
+    for l in np.unique(all_labels):
+        new_xvectors[l,:] = np.mean(all_xvectors[all_labels==l,:],axis=0)
+    return new_xvectors
 
-if __name__ == '__main__':
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--init', required=True, type=str, choices=['AHC', 'AHC+VB'],
                         help='AHC for using only AHC or AHC+VB for VB-HMM after AHC initilization', )
@@ -145,7 +156,7 @@ if __name__ == '__main__':
                     # merge neighbors
                     # does it matter if the repeats are masked?
                     mask = np.eye(xvectors, k=1) + np.eye(xvectors, k=-1)
-                    mask = np.eye(xvectors, k=1)
+#                    mask = np.eye(xvectors, k=1)
                     # threshold
                     if args.neighbor_thr:
                         scr_mx[mask==0] = 0
@@ -158,9 +169,8 @@ if __name__ == '__main__':
                     # cluster neighbors
                     labels_neighbor = AHC(scr_mx, thr + args.threshold) 
                     # get the new cluster centroid
-                    x_neighbor = np.empty((np.max(labels_neighbor)+1, xvector_length))
-                    for l in labels_neighbor:
-                        x_neighbor[l,:] = np.mean(x[labels_neighbor==l,:],axis=0)
+                    x_neighbor = get_new_xvectors(x, labels_neighbor)
+
                     # perform AHC again
                     scr_mx_neighbor = cos_similarity(x_neighbor)
                     # threshold
@@ -169,14 +179,14 @@ if __name__ == '__main__':
 
                     labels = AHC(scr_mx_neighbor, thr + args.threshold)
                     labels1st = get_full_labels(labels_neighbor, labels)
-                    elapsed = time.time()
+                    elapsed = start - time.time()
     
                 # output "labels" is an integer vector of speaker (cluster) ids
                 else:
                     thr, junk = twoGMMcalib_lin(scr_mx.ravel())
                     labels1st = AHC(scr_mx, thr + args.threshold)
-                    elapsed = time.time()
-            print('time', elapsed - start, 'xvectors', xvectors)
+                    elapsed = start - time.time()
+            print('time', elapsed, 'xvectors', xvectors)
             if args.init.endswith('VB'):
                 # Smooth the hard labels obtained from AHC to soft assignments
                 # of x-vectors to speakers
