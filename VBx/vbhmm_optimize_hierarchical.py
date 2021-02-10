@@ -89,14 +89,11 @@ def get_all_group_clusters(x, group_size_xvectors, total_xvectors, threshold):
     group_ids = [[s,s+group_size_xvectors] for s in range(0,total_xvectors,group_size_xvectors)]
     group_ids[-1][1] = total_xvectors
     # chunks must be at least 30 seconds
-    print(group_ids)
     if group_ids[-1][1] - group_ids[-1][0] < 30*4:
         group_ids = group_ids[0:-1]
         group_ids[-1][1] = total_xvectors
-    print(group_ids)
     # clustser all x-vectors in groups
     for indices in group_ids:
-        print(indices)
         group_xvectors, group_labels, group_cluster_total = get_group_clusters(x[indices[0]:indices[1],:], threshold)
         # update labels
         all_group_cluster_labels[indices[0]:indices[0]+group_labels.size] = group_labels + index_offset
