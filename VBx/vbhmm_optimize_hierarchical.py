@@ -83,7 +83,7 @@ def get_all_group_clusters(x, group_size_xvectors, total_xvectors, threshold):
     Returns an array of labels for all x-vectors and an array of clustered x-vectors
     """
     # initalize labels and x-vectors
-    all_group_cluster_labels = np.empty((total_xvectors,),dtype=np.int8)
+    all_group_cluster_labels = np.empty((total_xvectors,))
     all_xvectors_group_clustered = np.empty_like(x)
     index_offset = 0
     group_ids = [[s,s+group_size_xvectors] for s in range(0,total_xvectors,group_size_xvectors)]
@@ -102,6 +102,7 @@ def get_all_group_clusters(x, group_size_xvectors, total_xvectors, threshold):
         index_offset += group_cluster_total
     # get the clustered x-vectors
     all_xvectors_group_clustered = all_xvectors_group_clustered[0:index_offset,:]
+    all_group_cluster_labels = all_group_cluster_labels.astype(int)
     return all_group_cluster_labels, all_xvectors_group_clustered
 
 
